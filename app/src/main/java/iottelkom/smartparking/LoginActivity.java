@@ -10,8 +10,12 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+
 import es.dmoral.toasty.Toasty;
 import iottelkom.smartparking.utils.SMPreferences;
+import iottelkom.smartparking.utils.DbUser;
 
 /**
  * Created by kawakibireku on 11/7/17.
@@ -23,10 +27,12 @@ public class LoginActivity extends AppCompatActivity{
     private Button btnLogin;
     private EditText etxtUname;
     private EditText etxtPass;
+    private Button btnCreate;
 
     private SMPreferences smPreferences;
     private CheckBox cbKeepSignIn;
-
+    int i;
+    int status;
     @Override
     protected void onCreate(Bundle savedInstanceState){
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -37,6 +43,7 @@ public class LoginActivity extends AppCompatActivity{
         TAG = this.getClass().getSimpleName();
 
         btnLogin = (Button) findViewById(R.id.btnLogin);
+        btnCreate = (Button) findViewById(R.id.btnCreate);
         etxtUname = (EditText) findViewById(R.id.etxtUsername);
         etxtPass = (EditText) findViewById(R.id.etxtPassword);
 
@@ -54,27 +61,45 @@ public class LoginActivity extends AppCompatActivity{
         } else {
             Log.d(TAG,"gak login");
         }
+
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String username = etxtUname.getText().toString();
                 String password = etxtPass.getText().toString();
 
-                if(username.equals("admin") && password.equals("admin")){
-                    if(cbKeepSignIn.isChecked()){
-                        smPreferences.store(SMPreferences.KEY_LOGIN,SMPreferences.LOGGED_IN);
-                        smPreferences.store(SMPreferences.KEY_USERNAME,username);
+                DbUser db = new DbUser(getApplicationContext());
+                db.open();
+                i=0;
+                ArrayList<DbUser.Akun> akun = db.getAllUser();
+                for(DbUser.Akun index : akun) {
+                    if (username.equals(index.username.toString()) && password.equals(index.password.toString())) {
+                        if (cbKeepSignIn.isChecked()) {
+                            smPreferences.store(SMPreferences.KEY_LOGIN, SMPreferences.LOGGED_IN);
+                            smPreferences.store(SMPreferences.KEY_USERNAME, username);
+                        }
+                        status = 1;
                     }
-                    Toasty.success(getApplicationContext(), String.format("Welcome %s",username), Toast.LENGTH_SHORT, true).show();
-                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                    startActivity(intent);
-                } else{
-                    Toasty.error(getApplicationContext(),String.format("Failed to authenticate"),Toast.LENGTH_SHORT,true).show();
+                    if(status == 1){
+                        Toasty.success(getApplicationContext(), String.format("Welcome %s", username), Toast.LENGTH_SHORT, true).show();
+                        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                        startActivity(intent);
+                    } else {
+                        Toasty.error(getApplicationContext(), String.format("Failed to authenticate"), Toast.LENGTH_SHORT, true).show();
+                    }
                 }
                 /*
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                 startActivity(intent);
                 */
+            }
+        });
+
+        btnCreate.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                Intent intent = new Intent(getApplicationContext(), CreateAccount.class);
+                startActivity(intent);
             }
         });
     }
